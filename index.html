@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PaintFlow | نظام إدارة مقاولات النقاشة</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="app-container">
+
+        <!-- ===== HEADER ===== -->
+        <header class="app-header">
+            <div class="header-logo">
+                <span class="logo-icon">🎨</span>
+                <h1>PaintFlow</h1>
+            </div>
+            <div class="header-date" id="current-date-display">...</div>
+        </header>
+
+        <!-- ===== MAIN CONTENT ===== -->
+        <main class="app-content">
+
+            <!-- ======================== TAB 1: DASHBOARD ======================== -->
+            <section id="tab-dashboard" class="tab-panel active">
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon bg-blue">👥</div>
+                        <div class="stat-info">
+                            <span class="stat-label">العمال النشطين</span>
+                            <span class="stat-value" id="stat-active-workers">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon bg-orange">💰</div>
+                        <div class="stat-info">
+                            <span class="stat-label">إجمالي المستحقات</span>
+                            <span class="stat-value text-orange" id="stat-total-due">0 ج.م</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon bg-green">✓</div>
+                        <div class="stat-info">
+                            <span class="stat-label">حضور اليوم</span>
+                            <span class="stat-value text-green" id="stat-attendance-today">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weekly Summary -->
+                <div class="weekly-summary-card">
+                    <div class="weekly-header">
+                        <h3>نشاط الأسبوع الحالي</h3>
+                        <span class="weekly-stats-badge" id="weekly-stats-text">...</span>
+                    </div>
+                    <div class="weekly-grid" id="weekly-grid"><!-- JS --></div>
+                    <div class="weekly-legend">
+                        <span><span class="legend-dot dot-full"></span> حضور كامل</span>
+                        <span><span class="legend-dot dot-half"></span> نصف يوم</span>
+                        <span><span class="legend-dot dot-absent"></span> لا أحد</span>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="dashboard-actions">
+                    <h3>أزرار سريعة</h3>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" onclick="switchTab('attendance')">
+                            <span>📅</span> تسجيل حضور اليوم
+                        </button>
+                        <button class="btn btn-secondary" onclick="showAddWorkerModal()">
+                            <span>👤</span> إضافة عامل جديد
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Worker Financial Summary -->
+                <div class="summary-section">
+                    <div class="section-header">
+                        <h3>حالة العمال المالية الحالية</h3>
+                    </div>
+                    <div class="summary-list" id="dashboard-summary-list">
+                        <div class="empty-state">لا يوجد عمال مسجلين بعد.</div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ======================== TAB 2: WORKERS ======================== -->
+            <section id="tab-workers" class="tab-panel">
+
+                <div class="section-header">
+                    <h2>إدارة العمال</h2>
+                    <button class="btn btn-primary btn-sm" onclick="showAddWorkerModal()">إضافة +</button>
+                </div>
+
+                <div class="search-container">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="worker-search-input" class="search-input" placeholder="ابحث عن اسم العامل..."
+                        oninput="onWorkerSearch()">
+                </div>
+
+                <!-- Add/Edit Worker Modal -->
+                <div id="worker-modal" class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="worker-modal-title">إضافة عامل جديد</h3>
+                            <button class="close-btn" onclick="closeWorkerModal()">&times;</button>
+                        </div>
+                        <form id="worker-form" onsubmit="saveWorker(event)">
+                            <input type="hidden" id="worker-id">
+                            <div class="form-group">
+                                <label for="worker-name">اسم العامل *</label>
+                                <input type="text" id="worker-name" required placeholder="أدخل اسم العامل الثنائي">
+                            </div>
+                            <div class="form-group">
+                                <label for="worker-phone">رقم الهاتف</label>
+                                <input type="tel" id="worker-phone" placeholder="مثال: 01012345678">
+                            </div>
+                            <div class="form-group">
+                                <label for="worker-category">الفئة *</label>
+                                <select id="worker-category" onchange="updateDefaultRateHint()" required>
+                                    <option value="craftsman">صنايعي (فئة أ)</option>
+                                    <option value="advanced_assistant">مساعد متقدم (فئة ب)</option>
+                                    <option value="assistant">مساعد (فئة ج)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="worker-rate">سعر اليومية (ج.م) *</label>
+                                <input type="number" id="worker-rate" required min="0" placeholder="اليومية بالجنيه">
+                                <small class="form-hint" id="rate-hint">اليومية الافتراضية: 0 ج.م</small>
+                            </div>
+                            <div class="modal-actions">
+                                <button type="submit" class="btn btn-success">حفظ</button>
+                                <button type="button" class="btn btn-muted" onclick="closeWorkerModal()">إلغاء</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Category Filters -->
+                <div class="filter-tabs">
+                    <button class="filter-btn active" onclick="filterWorkers('all', event)">الكل</button>
+                    <button class="filter-btn" onclick="filterWorkers('craftsman', event)">صنايعية</button>
+                    <button class="filter-btn" onclick="filterWorkers('advanced_assistant', event)">مساعدين
+                        متقدمين</button>
+                    <button class="filter-btn" onclick="filterWorkers('assistant', event)">مساعدين</button>
+                </div>
+
+                <div class="workers-list" id="workers-container"></div>
+
+            </section>
+
+            <!-- ======================== TAB 3: PROJECTS ======================== -->
+            <section id="tab-projects" class="tab-panel">
+
+                <div class="section-header">
+                    <h2>المشاريع والمواقع</h2>
+                    <button class="btn btn-primary btn-sm" onclick="showAddProjectModal()">إضافة موقع +</button>
+                </div>
+
+                <!-- Add/Edit Project Modal -->
+                <div id="project-modal" class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="project-modal-title">إضافة موقع جديد</h3>
+                            <button class="close-btn" onclick="closeProjectModal()">&times;</button>
+                        </div>
+                        <form id="project-form" onsubmit="saveProject(event)">
+                            <input type="hidden" id="project-id">
+                            <div class="form-group">
+                                <label for="project-name">اسم الموقع/المشروع *</label>
+                                <input type="text" id="project-name" required placeholder="مثال: شقة شارع السلام">
+                            </div>
+                            <div class="form-group">
+                                <label for="project-location">العنوان أو الموقع</label>
+                                <input type="text" id="project-location" placeholder="مثال: مدينة نصر، القاهرة">
+                            </div>
+                            <div class="form-group">
+                                <label for="project-client">اسم صاحب الشغل</label>
+                                <input type="text" id="project-client" placeholder="مثال: المهندس أحمد">
+                            </div>
+                            <div class="modal-actions">
+                                <button type="submit" class="btn btn-success">حفظ</button>
+                                <button type="button" class="btn btn-muted" onclick="closeProjectModal()">إلغاء</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="projects-list" id="projects-container"></div>
+
+            </section>
+
+            <!-- ======================== TAB 4: ATTENDANCE ======================== -->
+            <section id="tab-attendance" class="tab-panel">
+
+                <div class="section-header">
+                    <h2>دفتر الحضور والغياب</h2>
+                </div>
+
+                <!-- Date Navigation -->
+                <div class="date-navigator">
+                    <button class="date-nav-btn" onclick="adjustDate(-1)">◀ السابق</button>
+                    <div class="date-picker-wrapper">
+                        <input type="date" id="attendance-date-picker" onchange="onAttendanceDateChange()">
+                    </div>
+                    <button class="date-nav-btn" onclick="adjustDate(1)">التالي ▶</button>
+                </div>
+
+                <!-- Project Filter -->
+                <div class="project-filter-bar">
+                    <span class="project-filter-label">📍 الموقع:</span>
+                    <select id="attendance-project-filter" class="project-filter-select"
+                        onchange="onAttendanceProjectChange()">
+                        <option value="all">جميع المواقع</option>
+                    </select>
+                </div>
+
+                <div class="search-container">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="attendance-search-input" class="search-input"
+                        placeholder="ابحث عن اسم العامل..." oninput="onAttendanceSearch()">
+                </div>
+
+                <div class="attendance-info-bar">
+                    <span id="attendance-summary-text">الحضور اليوم: 0 عمال</span>
+                    <button class="btn btn-secondary btn-xs" onclick="markAllPresent()">تحضير الكل حاضر</button>
+                </div>
+
+                <div class="attendance-list" id="attendance-container"></div>
+
+            </section>
+
+            <!-- ======================== TAB 5: PAYMENTS ======================== -->
+            <section id="tab-payments" class="tab-panel">
+
+                <div class="section-header">
+                    <h2>الحسابات والتصفية</h2>
+                </div>
+
+                <div class="search-container">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="payments-search-input" class="search-input"
+                        placeholder="ابحث عن اسم العامل..." oninput="onPaymentsSearch()">
+                </div>
+
+                <div class="accounts-list" id="accounts-container"></div>
+
+                <div class="payments-history-section">
+                    <h3>سجل التصفية والدفعات السابقة</h3>
+                    <div class="history-list" id="history-container">
+                        <div class="empty-state">لا يوجد دفعات مسجلة سابقاً.</div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ======================== TAB 6: SETTINGS ======================== -->
+            <section id="tab-settings" class="tab-panel">
+
+                <div class="section-header">
+                    <h2>الإعدادات والنسخ الاحتياطي</h2>
+                </div>
+
+                <div class="settings-card">
+                    <h3>تهيئة يوميات الفئات الافتراضية</h3>
+                    <p class="settings-desc">تغيير الأرقام هنا سيغير الأجر اليومي الافتراضي عند إضافة عمال جدد مستقبلاً.
+                    </p>
+                    <form id="settings-rates-form" onsubmit="saveDefaultRates(event)">
+                        <div class="form-group-inline">
+                            <label>يومية الصنايعي (ج.م):</label>
+                            <input type="number" id="default-rate-craftsman" value="300">
+                        </div>
+                        <div class="form-group-inline">
+                            <label>يومية مساعد متقدم (ج.م):</label>
+                            <input type="number" id="default-rate-advanced" value="200">
+                        </div>
+                        <div class="form-group-inline">
+                            <label>يومية المساعد (ج.م):</label>
+                            <input type="number" id="default-rate-assistant" value="150">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">حفظ أسعار الفئات</button>
+                    </form>
+                </div>
+
+                <div class="settings-card">
+                    <h3>النسخ الاحتياطي وتأمين البيانات</h3>
+                    <p class="settings-desc">بما أن التطبيق يعمل محلياً، فمن المهم حفظ نسخة احتياطية من بياناتك لتجنب
+                        فقدانها.</p>
+                    <div class="backup-actions">
+                        <button class="btn btn-success" onclick="exportData()">💾 تصدير البيانات (نسخة
+                            احتياطية)</button>
+                        <div class="file-upload-wrapper">
+                            <button class="btn btn-secondary">📂 استيراد البيانات (استرجاع)</button>
+                            <input type="file" id="import-file-input" onchange="importData(event)" accept=".json">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card border-danger">
+                    <h3 class="text-danger">منطقة الخطر</h3>
+                    <p class="settings-desc">مسح كافة البيانات وإعادة التطبيق للحالة المصنعية الأولى. هذا الإجراء لا
+                        يمكن التراجع عنه.</p>
+                    <button class="btn btn-danger btn-sm" onclick="factoryReset()">⚠️ حذف كل البيانات وتصفير
+                        التطبيق</button>
+                </div>
+
+            </section>
+
+        </main>
+
+        <!-- ===== BOTTOM NAVIGATION ===== -->
+        <nav class="app-nav">
+            <button class="nav-item active" onclick="switchTab('dashboard')" id="nav-dashboard">
+                <span class="nav-icon">📊</span>
+                <span class="nav-text">الرئيسية</span>
+            </button>
+            <button class="nav-item" onclick="switchTab('workers')" id="nav-workers">
+                <span class="nav-icon">👥</span>
+                <span class="nav-text">العمال</span>
+            </button>
+            <button class="nav-item" onclick="switchTab('projects')" id="nav-projects">
+                <span class="nav-icon">🏗️</span>
+                <span class="nav-text">مواقع</span>
+            </button>
+            <button class="nav-item" onclick="switchTab('attendance')" id="nav-attendance">
+                <span class="nav-icon">📅</span>
+                <span class="nav-text">الحضور</span>
+            </button>
+            <button class="nav-item" onclick="switchTab('payments')" id="nav-payments">
+                <span class="nav-icon">💰</span>
+                <span class="nav-text">الحسابات</span>
+            </button>
+            <button class="nav-item" onclick="switchTab('settings')" id="nav-settings">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-text">الإعدادات</span>
+            </button>
+        </nav>
+
+    </div><!-- end .app-container -->
+
+    <!-- ===== WORKER PROFILE MODAL (global, outside container) ===== -->
+    <div id="worker-profile-modal" class="modal">
+        <div class="modal-content profile-modal-content">
+            <div class="modal-header">
+                <div class="profile-header-info">
+                    <div class="profile-avatar">👷‍♂️</div>
+                    <div>
+                        <h3 id="profile-worker-name">اسم العامل</h3>
+                        <span class="badge" id="profile-worker-badge">فئة</span>
+                    </div>
+                </div>
+                <button class="close-btn" onclick="closeWorkerProfile()">&times;</button>
+            </div>
+
+            <div class="profile-tabs-nav">
+                <button class="profile-tab-btn active" onclick="switchProfileTab('stats', this)">الإحصائيات</button>
+                <button class="profile-tab-btn" onclick="switchProfileTab('history', this)">الحضور</button>
+                <button class="profile-tab-btn" onclick="switchProfileTab('payments_history', this)">الدفعات</button>
+            </div>
+
+            <div id="profile-tab-stats" class="profile-tab-content active">
+                <div id="profile-stats-content"></div>
+            </div>
+            <div id="profile-tab-history" class="profile-tab-content">
+                <div id="profile-history-content"></div>
+            </div>
+            <div id="profile-tab-payments_history" class="profile-tab-content">
+                <div id="profile-payments-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ADVANCE PAYMENT MODAL (global) ===== -->
+    <div id="advance-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>💸 صرف سُلفة</h3>
+                <button class="close-btn" onclick="closeAdvanceModal()">&times;</button>
+            </div>
+            <input type="hidden" id="advance-worker-id">
+            <div class="advance-worker-info">
+                <span class="text-muted" style="font-size:0.8rem;">اسم العامل:</span>
+                <div id="advance-worker-name-display" style="font-weight:800;font-size:1rem;margin-top:4px;"></div>
+            </div>
+            <div class="advance-balance-info" id="advance-balance-info"></div>
+            <div class="form-group">
+                <label for="advance-amount">مبلغ السُلفة (ج.م) *</label>
+                <input type="number" id="advance-amount" min="1" placeholder="أدخل مبلغ السُلفة">
+            </div>
+            <div class="form-group">
+                <label for="advance-notes">ملاحظة (اختياري)</label>
+                <input type="text" id="advance-notes" placeholder="مثال: سُلفة للمواصلات">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="confirmPayAdvance()">صرف السُلفة</button>
+                <button class="btn btn-muted" onclick="closeAdvanceModal()">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== TOAST ===== -->
+    <div id="toast" class="toast"></div>\
+
+    <script src="api.js"></script>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
